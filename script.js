@@ -90,3 +90,136 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }, 100);
 });
+// Folders structure (add more folders as needed)
+const folders = [
+  {
+    name: "Farewell",
+    images: [
+      {
+        url: "https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/889cbad2-d035-4c37-a1fb-2f9a277b8f21.png",
+        alt: "Farewell ceremony for batch 2025",
+        year: "2025"
+      }
+    ]
+  },
+  {
+    name: "Sports Day",
+    images: []
+  }
+];
+
+let selectedFolderIndex = 0;
+
+function renderFolders() {
+  const folderList = document.getElementById('folderList');
+  folderList.innerHTML = folders.map((folder, idx) => `
+    <button 
+      class="px-4 py-2 m-2 rounded ${idx === selectedFolderIndex ? 'bg-blue-500 text-white' : 'bg-gray-200'}"
+      onclick="selectFolder(${idx})"
+    >${folder.name}</button>
+  `).join('');
+}
+
+window.selectFolder = function(idx) {
+  selectedFolderIndex = idx;
+  renderFolders();
+  renderGallery();
+}
+
+function renderGallery() {
+  const gallery = document.getElementById('gallery');
+  const images = folders[selectedFolderIndex].images;
+  gallery.innerHTML = images.map((image, index) => createGalleryItem(image, index)).join('');
+}
+
+function createGalleryItem(image, index) {
+  const delay = (index % 8) * 0.1;
+  return `
+    <div class="gallery-item" style="animation-delay: ${delay}s">
+      <div class="bg-white rounded-xl overflow-hidden shadow-lg h-full flex flex-col">
+        <div class="relative pt-[75%] overflow-hidden">
+          <img 
+            src="${image.url}" 
+            alt="${image.alt}"
+            class="absolute top-0 left-0 w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+          />
+        </div>
+        <div class="p-4 flex-grow">
+          <p class="text-sm text-gray-500">${image.year ? 'Class of ' + image.year : ''}</p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Local upload handler
+window.handleUpload = function(event) {
+  const files = Array.from(event.target.files);
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      folders[selectedFolderIndex].images.push({
+        url: e.target.result,
+        alt: file.name,
+        year: new Date().getFullYear()
+      });
+      renderGallery();
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// Google Drive Picker integration (basic, needs setup!)
+// You must set up a Google Cloud API key and OAuth client, see: https://developers.google.com/picker/docs/
+window.openGooglePicker = function() {
+  // Replace with your API key and client ID
+  const developerKey = 'YOUR_API_KEY';
+  const clientId = 'YOUR_CLIENT_ID';
+  const appId = 'YOUR_APP_ID';
+  const scope = ['https://www.googleapis.com/auth/drive.readonly'];
+
+  function onPickerLoaded() {
+    const picker = new google.picker.PickerBuilder()
+      .addView(google.picker.ViewId.DOCS_IMAGES)
+      .setOAuthToken(window.gapi.auth.getToken().access_token)
+      .setDeveloperKey(developerKey)
+      .setCallback(function(data){
+        if(data.action === google.picker.Action.PICKED){
+          data.docs.forEach(doc => {
+            folders[selectedFolderIndex].images.push({
+              url: doc.url,
+              alt: doc.name,
+              year: new Date().getFullYear()
+            });
+          });
+          renderGallery();
+        }
+      })
+      .build();
+    picker.setVisible(true);
+  }
+
+  function onAuthApiLoad() {
+    window.gapi.auth.authorize(
+      {
+        'client_id': clientId,
+        'scope': scope.join(' '),
+        'immediate': false
+      },
+      function(authResult) {
+        if (authResult && !authResult.error) {
+          onPickerLoaded();
+        }
+      }
+    );
+  }
+
+  window.gapi.load('auth', {'callback': onAuthApiLoad});
+  window.gapi.load('picker');
+}
+
+// Initial render
+document.addEventListener('DOMContentLoaded', () => {
+  renderFolders();
+  renderGallery();
+});
