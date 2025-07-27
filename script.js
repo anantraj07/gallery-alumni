@@ -217,7 +217,72 @@ window.openGooglePicker = function() {
   window.gapi.load('auth', {'callback': onAuthApiLoad});
   window.gapi.load('picker');
 }
+// Initialize Firebase (use your own config!)
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "SENDER_ID",
+  appId: "APP_ID"
+};
+firebase.initializeApp(firebaseConfig);
+const storage = firebase.storage();
+const db = firebase.firestore();
 
+// Modal logic
+document.getElementById('openUploadModal').onclick = () => {
+  document.getElementById('uploadModal').classList.remove('hidden');
+};
+document.getElementById('closeUploadModal').onclick = () => {
+  document.getElementById('uploadModal').classList.add('hidden');
+};
+
+// Preview logic
+let selectedFiles = [];
+document.getElementById('uploadInput').onchange = (e) => {
+  selectedFiles = Array.from(e.target.files);
+  const previewArea = document.getElementById('previewArea');
+  previewArea.innerHTML = '';
+  selectedFiles.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = document.createElement('img');
+      img.src = ev.target.result;
+      img.className = "h-24 rounded shadow";
+      previewArea.appendChild(img);
+    };
+    reader.readAsDataURL(file);
+  });
+};
+
+// Confirm upload and persist
+document.getElementById('confirmUpload').onclick = async () => {
+  for (const file of selectedFiles) {
+    const storageRef = storage.ref('images/' + Date.now() + '-' + file.name);
+    await storageRef.put(file);
+    const url = await storageRef.getDownloadURL();
+    await db.collection('gallery').add({ url, name: file.name, timestamp: Date.now() });
+  }
+  document.getElementById('uploadModal').classList.add('hidden');
+  loadGallery();
+};
+
+// Show images from storage
+async function loadGallery() {
+  const gallery = document.getElementById('gallery');
+  gallery.innerHTML = '';
+  const snapshot = await db.collection('gallery').orderBy('timestamp', 'desc').get();
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    const imgDiv = document.createElement('div');
+    imgDiv.className = "gallery-item";
+    imgDiv.innerHTML = `<img src="${data.url}" alt="${data.name}" class="h-32 rounded shadow"><p>${data.name}</p>`;
+    gallery.appendChild(imgDiv);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', loadGallery);
 // Initial render
 document.addEventListener('DOMContentLoaded', () => {
   renderFolders();
