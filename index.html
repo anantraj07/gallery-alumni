@@ -76,6 +76,18 @@
             </div>
         </div>
     </header>
+    
+<div id="folderList" class="flex flex-wrap mb-4"></div>
+<div class="mb-4 flex flex-col sm:flex-row items-center gap-4">
+  <input type="file" multiple accept="image/*" onchange="handleUpload(event)" class="border p-2 rounded" />
+  <button onclick="openGooglePicker()" class="bg-green-500 text-white px-4 py-2 rounded shadow">
+    Upload from Google Drive
+  </button>
+</div>
+<div id="gallery" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+
+<!-- Add Google Picker script in <head> if using Google Drive integration -->
+<script src="https://apis.google.com/js/api.js"></script>
 
     <!-- Main Gallery Section -->
     <main class="container mx-auto py-12 px-4">
